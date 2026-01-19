@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نظام إدخال البيانات العراقي</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        /* تنسيقات عامة */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        /* الشعار */
+        .logo {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #0d47a1, #1976d2);
+            color: white;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 5px;
+        }
+        
+        .logo .logo-icon {
+            font-size: 2.2rem;
+            color: #ffd700;
+        }
+        
+        .logo p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        /* إحصائيات سريعة */
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background-color: #f9fafc;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 180px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            border-top: 4px solid #0d47a1;
+        }
+        
+        .stat-card i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #0d47a1;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        /* المحتوى الرئيسي */
+        .main-content {
+            padding: 20px;
+        }
+        
+        /* مرشحات البحث */
+        .filters {
+            background-color: #f9fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-right: 5px solid #0d47a1;
+        }
+        
+        .filters h2 {
+            color: #0d47a1;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .filters h2 i {
+            color: #0d47a1;
+        }
+        
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-group {
+            flex: 1 1 250px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        .filter-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        /* أزرار التحكم */
+        .control-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-filter {
+            background-color: #0d47a1;
+            color: white;
+        }
+        
+        .btn-filter:hover {
+            background-color: #1565c0;
+        }
+        
+        .btn-reset {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        .btn-reset:hover {
+            background-color: #7f8c8d;
+        }
+        
+        .btn-back {
+            background-color: #e74c3c;
+            color: white;
+            margin-top: 10px;
+        }
+        
+        .btn-back:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-download {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .btn-download:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-refresh {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-refresh:hover {
+            background-color: #2980b9;
+        }
+        
+        /* جدول الطلبات */
+        .requests-section {
+            margin-top: 30px;
+        }
+        
+        .requests-section h2 {
+            color: #0d47a1;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .requests-section h2 i {
+            color: #0d47a1;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        
+        thead {
+            background-color: #0d47a1;
+            color: white;
+        }
+        
+        th {
+            padding: 15px;
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        tbody tr {
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s;
+        }
+        
+        tbody tr:hover {
+            background-color: #f9fafc;
+        }
+        
+        td {
+            padding: 15px;
+            text-align: right;
+        }
+        
+        /* تنسيقات حالة الطلب */
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-pending {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        .status-approved {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .status-rejected {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .status-inreview {
+            background-color: #0d47a1;
+            color: white;
+        }
+        
+        /* أزرار الإجراءات */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border: none;
+        }
+        
+        .btn-view {
+            background-color: #0d47a1;
+            color: white;
+        }
+        
+        .btn-view:hover {
+            background-color: #1565c0;
+        }
+        
+        .btn-approve {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .btn-approve:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-reject {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-reject:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-delete {
+            background-color: #7f8c8d;
+            color: white;
+        }
+        
+        .btn-delete:hover {
+            background-color: #95a5a6;
+        }
+        
+        /* نافذة عرض التفاصيل */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            background-color: #0d47a1;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+        
+        .detail-group {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-group h4 {
+            color: #0d47a1;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detail-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .detail-item {
+            flex: 1 1 300px;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            color: #333;
+            padding: 8px;
+            background-color: #f9fafc;
+            border-radius: 5px;
+        }
+        
+        /* سبب الرفض في التفاصيل */
+        .reject-detail {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-right: 3px solid #e74c3c;
+        }
+        
+        .reject-detail h5 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        
+        /* نافذة رفض الطلب */
+        .reject-modal .modal-content {
+            max-width: 500px;
+        }
+        
+        .reject-form {
+            margin-top: 15px;
+        }
+        
+        .reject-form textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            margin-top: 10px;
+            min-height: 100px;
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .reject-form button {
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        /* التذييل */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+        
+        /* تنسيقات للجوال */
+        @media (max-width: 768px) {
+            .stat-card {
+                min-width: 140px;
+            }
+            
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            
+            .filter-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .filter-group {
+                flex: 1 1 100%;
+            }
+            
+            .logo h1 {
+                font-size: 1.5rem;
+            }
+            
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .detail-item {
+                flex: 1 1 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* شريط البحث السريع */
+        .quick-search {
+            background-color: #f0f7ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .quick-search input {
+            flex: 1 1 300px;
+            padding: 10px 15px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        /* رسالة عدم العثور */
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        /* تحميل */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0d47a1;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* رسائل التنبيه */
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        /* مرشح التاريخ */
+        .date-filter {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .date-filter input {
+            padding: 8px 12px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- الشعار -->
+        <div class="logo">
+            <h1><i class="fas fa-tachometer-alt logo-icon"></i> لوحة التحكم - نظام تسجيل ذوي الإعاقة</h1>
+            <p>وزارة العمل والشؤون الاجتماعية - إدارة الطلبات والبيانات</p>
+        </div>
+        
+        <!-- إحصائيات سريعة -->
+        <div class="stats">
+            <div class="stat-card">
+                <i class="fas fa-clipboard-list"></i>
+                <div class="stat-number" id="totalRequests">0</div>
+                <div class="stat-label">إجمالي الطلبات</div>
+            </div>
+            
+            <div class="stat-card">
+                <i class="fas fa-eye"></i>
+                <div class="stat-number" id="pendingRequests">0</div>
+                <div class="stat-label">تحت المعاينة</div>
+            </div>
+            
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-number" id="approvedRequests">0</div>
+                <div class="stat-label">مكتمل</div>
+            </div>
+            
+            <div class="stat-card">
+                <i class="fas fa-times-circle"></i>
+                <div class="stat-number" id="rejectedRequests">0</div>
+                <div class="stat-label">مرفوض</div>
+            </div>
+        </div>
+        
+        <main class="main-content">
+            <!-- رسائل التنبيه -->
+            <div id="successAlert" class="alert alert-success" style="display: none;">
+                <i class="fas fa-check-circle"></i> <span id="successMessage"></span>
+            </div>
+            
+            <div id="errorAlert" class="alert alert-error" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i> <span id="errorMessage"></span>
+            </div>
+            
+            <!-- البحث السريع -->
+            <div class="quick-search">
+                <input type="text" id="quickSearch" placeholder="ابحث برقم الطلب، الاسم، أو المحافظة...">
+                <button id="quickSearchBtn" class="btn btn-filter">
+                    <i class="fas fa-search"></i> بحث
+                </button>
+                <button id="clearSearchBtn" class="btn btn-reset">
+                    <i class="fas fa-redo"></i> مسح
+                </button>
+                <button id="refreshBtn" class="btn btn-refresh">
+                    <i class="fas fa-sync-alt"></i> تحديث
+                </button>
+            </div>
+            
+            <!-- مرشحات البحث -->
+            <div class="filters">
+                <h2><i class="fas fa-filter"></i> فلترة الطلبات</h2>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterStatus">حالة الطلب</label>
+                        <select id="filterStatus" class="filter-control">
+                            <option value="">جميع الحالات</option>
+                            <option value="تحت المعاينة">تحت المعاينة</option>
+                            <option value="مكتمل">مكتمل</option>
+                            <option value="مرفوض">مرفوض</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="filterGovernorate">المحافظة</label>
+                        <select id="filterGovernorate" class="filter-control">
+                            <option value="">جميع المحافظات</option>
+                            <option value="بغداد">بغداد</option>
+                            <option value="البصرة">البصرة</option>
+                            <option value="نينوى">نينوى</option>
+                            <option value="أربيل">أربيل</option>
+                            <option value="السليمانية">السليمانية</option>
+                            <option value="ذي قار">ذي قار</option>
+                            <option value="الأنبار">الأنبار</option>
+                            <option value="كركوك">كركوك</option>
+                            <option value="ميسان">ميسان</option>
+                            <option value="ديالى">ديالى</option>
+                            <option value="القادسية">القادسية</option>
+                            <option value="بابل">بابل</option>
+                            <option value="كربلاء">كربلاء</option>
+                            <option value="النجف">النجف</option>
+                            <option value="صلاح الدين">صلاح الدين</option>
+                            <option value="واسط">واسط</option>
+                            <option value="المثنى">المثنى</option>
+                            <option value="دهوك">دهوك</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>تاريخ الطلب</label>
+                        <div class="date-filter">
+                            <input type="date" id="filterDateFrom" class="filter-control">
+                            <span>إلى</span>
+                            <input type="date" id="filterDateTo" class="filter-control">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-buttons">
+                    <button id="applyFilter" class="btn btn-filter">
+                        <i class="fas fa-search"></i> تطبيق الفلتر
+                    </button>
+                    
+                    <button id="resetFilter" class="btn btn-reset">
+                        <i class="fas fa-redo"></i> إعادة تعيين
+                    </button>
+                    
+                    <button id="backToForm" class="btn btn-back">
+                        <i class="fas fa-arrow-right"></i> العودة لنموذج الإدخال
+                    </button>
+                    
+                    <button id="downloadData" class="btn btn-download">
+                        <i class="fas fa-download"></i> تصدير البيانات
+                    </button>
+                </div>
+            </div>
+            
+            <!-- تحميل -->
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>جاري تحميل البيانات...</p>
+            </div>
+            
+            <!-- جدول الطلبات -->
+            <div class="requests-section">
+                <h2><i class="fas fa-list-alt"></i> قائمة الطلبات</h2>
+                
+                <div class="table-container">
+                    <table id="requestsTable">
+                        <thead>
+                            <tr>
+                                <th>رقم الطلب</th>
+                                <th>الاسم الرباعي</th>
+                                <th>رقم الهاتف</th>
+                                <th>المحافظة</th>
+                                <th>نوع العوق</th>
+                                <th>حالة الطلب</th>
+                                <th>تاريخ الإرسال</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsBody">
+                            <!-- سيتم تعبئة الجدول بواسطة JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="no-data" id="noResults" style="display: none;">
+                    <i class="fas fa-inbox"></i>
+                    <h3>لا توجد طلبات لعرضها</h3>
+                    <p>لم يتم العثور على أي طلبات تطابق معايير البحث</p>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="footer">
+            <p>جميع الحقوق محفوظة &copy; <span id="currentYear"></span> - وزارة العمل والشؤون الاجتماعية - العراق</p>
+            <p>لوحة التحكم - الإصدار 1.0</p>
+        </footer>
+    </div>
+    
+    <!-- نافذة عرض تفاصيل الطلب -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> تفاصيل الطلب</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body" id="detailModalBody">
+                <!-- سيتم تعبئة التفاصيل بواسطة JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة رفض الطلب -->
+    <div id="rejectModal" class="modal reject-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-times-circle"></i> رفض الطلب</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>يرجى كتابة سبب رفض الطلب:</p>
+                <div class="reject-form">
+                    <textarea id="rejectReason" placeholder="أدخل سبب الرفض..."></textarea>
+                    <button id="confirmReject" class="btn btn-reject">تأكيد الرفض</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKfxhPWypsBgEfvttaylbQ4uIfsTbynIM",
+            authDomain: "mohammed-65f0f.firebaseapp.com",
+            projectId: "mohammed-65f0f",
+            storageBucket: "mohammed-65f0f.firebasestorage.app",
+            messagingSenderId: "374901821778",
+            appId: "1:374901821778:web:9e9cc33c9f4ee3782eea8b",
+            measurementId: "G-FGNKZZ52TT"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        
+        // تعيين السنة الحالية في التذييل
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // البيانات والمتغيرات
+        let requests = [];
+        let currentRejectId = null;
+        let filteredRequests = [];
+        let unsubscribe = null;
+        
+        // تحديث الإحصائيات
+        function updateStats() {
+            const total = requests.length;
+            const pending = requests.filter(r => r.status === 'تحت المعاينة').length;
+            const approved = requests.filter(r => r.status === 'مكتمل').length;
+            const rejected = requests.filter(r => r.status === 'مرفوض').length;
+            
+            document.getElementById('totalRequests').textContent = total;
+            document.getElementById('pendingRequests').textContent = pending;
+            document.getElementById('approvedRequests').textContent = approved;
+            document.getElementById('rejectedRequests').textContent = rejected;
+        }
+        
+        // عرض رسالة نجاح
+        function showSuccess(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successAlert').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('successAlert').style.display = 'none';
+            }, 3000);
+        }
+        
+        // عرض رسالة خطأ
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorAlert').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('errorAlert').style.display = 'none';
+            }, 5000);
+        }
+        
+        // عرض تحميل
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+        
+        // إخفاء تحميل
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        // جلب البيانات من Firebase
+        async function fetchRequests() {
+            showLoading();
+            try {
+                const querySnapshot = await db.collection('disability_requests').orderBy('submissionDate', 'desc').get();
+                requests = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    requests.push(data);
+                });
+                
+                updateStats();
+                filterRequests();
+            } catch (error) {
+                console.error("خطأ في جلب البيانات:", error);
+                showError("حدث خطأ في جلب البيانات من قاعدة البيانات");
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // الاستماع للتحديثات الفورية
+        function setupRealtimeListener() {
+            if (unsubscribe) unsubscribe();
+            
+            unsubscribe = db.collection('disability_requests')
+                .orderBy('submissionDate', 'desc')
+                .onSnapshot((querySnapshot) => {
+                    requests = [];
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        data.id = doc.id;
+                        requests.push(data);
+                    });
+                    
+                    updateStats();
+                    filterRequests();
+                }, (error) => {
+                    console.error("خطأ في الاستماع للتحديثات:", error);
+                    showError("حدث خطأ في الاتصال بقاعدة البيانات");
+                });
+        }
+        
+        // عرض الطلبات في الجدول
+        function displayRequests(data = filteredRequests) {
+            const tbody = document.getElementById('requestsBody');
+            const noResults = document.getElementById('noResults');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            noResults.style.display = 'none';
+            
+            tbody.innerHTML = data.map(request => {
+                // تحديد لون حالة الطلب
+                let statusClass = 'status-pending';
+                if (request.status === 'مكتمل') statusClass = 'status-approved';
+                else if (request.status === 'مرفوض') statusClass = 'status-rejected';
+                else if (request.status === 'تحت المعاينة') statusClass = 'status-inreview';
+                
+                // تنسيق التاريخ
+                let formattedDate = 'غير محدد';
+                if (request.submissionDate && request.submissionDate.toDate) {
+                    const submissionDate = request.submissionDate.toDate();
+                    formattedDate = submissionDate.toLocaleDateString('ar-SA', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                
+                return `
+                    <tr data-id="${request.id}">
+                        <td><strong>${request.requestNumber}</strong></td>
+                        <td>${request.fullName}</td>
+                        <td>${request.phone1}</td>
+                        <td>${request.governorate}</td>
+                        <td>${request.disabilityType}</td>
+                        <td><span class="status-badge ${statusClass}">${request.status}</span></td>
+                        <td>${formattedDate}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action btn-view" onclick="viewDetails('${request.id}')">
+                                    <i class="fas fa-eye"></i> عرض
+                                </button>
+                                ${request.status !== 'مكتمل' ? `
+                                <button class="btn-action btn-approve" onclick="approveRequest('${request.id}')">
+                                    <i class="fas fa-check"></i> قبول
+                                </button>
+                                ` : ''}
+                                ${request.status !== 'مرفوض' ? `
+                                <button class="btn-action btn-reject" onclick="openRejectModal('${request.id}')">
+                                    <i class="fas fa-times"></i> رفض
+                                </button>
+                                ` : ''}
+                                <button class="btn-action btn-delete" onclick="deleteRequest('${request.id}')">
+                                    <i class="fas fa-trash"></i> حذف
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // فلترة الطلبات
+        function filterRequests() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const governorateFilter = document.getElementById('filterGovernorate').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            const quickSearch = document.getElementById('quickSearch').value.trim().toLowerCase();
+            
+            filteredRequests = requests;
+            
+            // البحث السريع
+            if (quickSearch) {
+                filteredRequests = filteredRequests.filter(r => {
+                    return (
+                        r.requestNumber.toLowerCase().includes(quickSearch) ||
+                        r.fullName.toLowerCase().includes(quickSearch) ||
+                        r.governorate.toLowerCase().includes(quickSearch) ||
+                        r.phone1.includes(quickSearch)
+                    );
+                });
+            }
+            
+            // فلترة بالحالة
+            if (statusFilter) {
+                filteredRequests = filteredRequests.filter(r => r.status === statusFilter);
+            }
+            
+            // فلترة بالمحافظة
+            if (governorateFilter) {
+                filteredRequests = filteredRequests.filter(r => r.governorate === governorateFilter);
+            }
+            
+            // فلترة بالتاريخ
+            if (dateFrom) {
+                const fromDate = new Date(dateFrom);
+                filteredRequests = filteredRequests.filter(r => {
+                    if (!r.submissionDate || !r.submissionDate.toDate) return false;
+                    const requestDate = r.submissionDate.toDate();
+                    return requestDate >= fromDate;
+                });
+            }
+            
+            if (dateTo) {
+                const toDate = new Date(dateTo);
+                toDate.setHours(23, 59, 59, 999);
+                filteredRequests = filteredRequests.filter(r => {
+                    if (!r.submissionDate || !r.submissionDate.toDate) return false;
+                    const requestDate = r.submissionDate.toDate();
+                    return requestDate <= toDate;
+                });
+            }
+            
+            displayRequests(filteredRequests);
+        }
+        
+        // عرض تفاصيل الطلب
+        async function viewDetails(id) {
+            const request = requests.find(r => r.id === id);
+            if (!request) return;
+            
+            const modalBody = document.getElementById('detailModalBody');
+            
+            // تنسيق التواريخ
+            let formattedBirthDate = request.birthDate || 'غير محدد';
+            let formattedSubmissionDate = 'غير محدد';
+            
+            if (request.submissionDate && request.submissionDate.toDate) {
+                const submissionDate = request.submissionDate.toDate();
+                formattedSubmissionDate = submissionDate.toLocaleDateString('ar-SA', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            // إنشاء محتوى التفاصيل
+            modalBody.innerHTML = `
+                <div class="detail-group">
+                    <h4><i class="fas fa-hashtag"></i> معلومات الطلب</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">رقم الطلب</div>
+                            <div class="detail-value">${request.requestNumber}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">حالة الطلب</div>
+                            <div class="detail-value">${request.status}</div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">تاريخ التسجيل</div>
+                            <div class="detail-value">${formattedSubmissionDate}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-group">
+                    <h4><i class="fas fa-id-card"></i> المعلومات الشخصية</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">الاسم الرباعي</div>
+                            <div class="detail-value">${request.fullName}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">اسم الأم الثلاثي</div>
+                            <div class="detail-value">${request.motherName}</div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">نوع الجنس</div>
+                            <div class="detail-value">${request.gender}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">تاريخ الميلاد</div>
+                            <div class="detail-value">${formattedBirthDate}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-group">
+                    <h4><i class="fas fa-address-book"></i> معلومات الاتصال</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">رقم الهاتف الأول</div>
+                            <div class="detail-value">${request.phone1}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">رقم الهاتف الثاني</div>
+                            <div class="detail-value">${request.phone2 || 'غير محدد'}</div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">المحافظة</div>
+                            <div class="detail-value">${request.governorate}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">القضاء / الناحية</div>
+                            <div class="detail-value">${request.district}</div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">أقرب نقطة دالة</div>
+                            <div class="detail-value">${request.landmark}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-group">
+                    <h4><i class="fas fa-money-check-alt"></i> معلومات الراتب</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">راتب الرعاية</div>
+                            <div class="detail-value">${request.hasWelfareSalary}</div>
+                        </div>
+                        ${request.hasWelfareSalary === 'لا' ? `
+                        <div class="detail-item">
+                            <div class="detail-label">سبب عدم الحصول على راتب رعاية</div>
+                            <div class="detail-value">${request.welfareSalaryReason || 'غير محدد'}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">راتب معين</div>
+                            <div class="detail-value">${request.hasSpecificSalary}</div>
+                        </div>
+                        ${request.hasSpecificSalary === 'لا' ? `
+                        <div class="detail-item">
+                            <div class="detail-label">سبب عدم الحصول على راتب معين</div>
+                            <div class="detail-value">${request.specificSalaryReason || 'غير محدد'}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="detail-group">
+                    <h4><i class="fas fa-users"></i> العلاقة والوصاية</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">درجة القرابة</div>
+                            <div class="detail-value">${request.relationshipDegree}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">اسم المعين</div>
+                            <div class="detail-value">${request.appointedName}</div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">هل أنت موظف؟</div>
+                            <div class="detail-value">${request.isEmployee}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">هل أنت متقاعد؟</div>
+                            <div class="detail-value">${request.isRetired}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-group">
+                    <h4><i class="fas fa-user-graduate"></i> الحالة الاجتماعية والتعليمية</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">الحالة الاجتماعية</div>
+                            <div class="detail-value">${request.maritalStatus}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">المستوى التعليمي</div>
+                            <div class="detail-value">${request.educationLevel}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-group">
+                    <h4><i class="fas fa-wheelchair"></i> معلومات العوق</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">نوع العوق</div>
+                            <div class="detail-value">${request.disabilityType}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">درجة العوق</div>
+                            <div class="detail-value">${request.disabilityLevel}</div>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">هل العوق</div>
+                            <div class="detail-value">${request.disabilityAcquired}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-group">
+                    <h4><i class="fas fa-hands-helping"></i> الدعم المطلوب</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">نوع الدعم المطلوب</div>
+                            <div class="detail-value">${request.supportType}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${request.additionalNotes ? `
+                <div class="detail-group">
+                    <h4><i class="fas fa-edit"></i> ملاحظات</h4>
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <div class="detail-label">ملاحظات إضافية</div>
+                            <div class="detail-value">${request.additionalNotes}</div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${request.rejectReason ? `
+                <div class="reject-detail">
+                    <h5><i class="fas fa-times-circle"></i> سبب الرفض</h5>
+                    <p>${request.rejectReason}</p>
+                </div>
+                ` : ''}
+            `;
+            
+            // فتح نافذة التفاصيل
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+        
+        // قبول الطلب
+        async function approveRequest(id) {
+            if (confirm('هل أنت متأكد من قبول هذا الطلب؟')) {
+                try {
+                    await db.collection('disability_requests').doc(id).update({
+                        status: 'مكتمل',
+                        rejectReason: firebase.firestore.FieldValue.delete()
+                    });
+                    showSuccess('تم قبول الطلب بنجاح');
+                } catch (error) {
+                    console.error("خطأ في قبول الطلب:", error);
+                    showError('حدث خطأ في قبول الطلب');
+                }
+            }
+        }
+        
+        // فتح نافذة رفض الطلب
+        function openRejectModal(id) {
+            currentRejectId = id;
+            document.getElementById('rejectReason').value = '';
+            document.getElementById('rejectModal').style.display = 'flex';
+        }
+        
+        // رفض الطلب
+        async function rejectRequest() {
+            const reason = document.getElementById('rejectReason').value.trim();
+            if (!reason) {
+                alert('يرجى كتابة سبب الرفض');
+                return;
+            }
+            
+            try {
+                await db.collection('disability_requests').doc(currentRejectId).update({
+                    status: 'مرفوض',
+                    rejectReason: reason
+                });
+                showSuccess('تم رفض الطلب بنجاح');
+                closeModal('rejectModal');
+            } catch (error) {
+                console.error("خطأ في رفض الطلب:", error);
+                showError('حدث خطأ في رفض الطلب');
+            }
+        }
+        
+        // حذف الطلب
+        async function deleteRequest(id) {
+            if (confirm('هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذه العملية.')) {
+                try {
+                    await db.collection('disability_requests').doc(id).delete();
+                    showSuccess('تم حذف الطلب بنجاح');
+                } catch (error) {
+                    console.error("خطأ في حذف الطلب:", error);
+                    showError('حدث خطأ في حذف الطلب');
+                }
+            }
+        }
+        
+        // البحث السريع
+        function quickSearch() {
+            filterRequests();
+        }
+        
+        // إعادة تعيين المرشحات
+        function resetFilters() {
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterGovernorate').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('quickSearch').value = '';
+            filteredRequests = [...requests];
+            displayRequests();
+        }
+        
+        // تصدير البيانات
+        function downloadData() {
+            if (filteredRequests.length === 0) {
+                alert('لا توجد بيانات للتصدير');
+                return;
+            }
+            
+            // تحويل البيانات إلى تنسيق CSV
+            let csvContent = "رقم الطلب,الاسم الرباعي,اسم الأم الثلاثي,نوع الجنس,تاريخ الميلاد,المحافظة,القضاء,رقم الهاتف,أقرب نقطة دالة,نوع العوق,درجة العوق,هل العوق,راتب الرعاية,سبب عدم راتب الرعاية,راتب معين,سبب عدم راتب معين,درجة القرابة,اسم المعين,هل موظف,هل متقاعد,الحالة الاجتماعية,المستوى التعليمي,نوع الدعم المطلوب,ملاحظات,حالة الطلب,سبب الرفض,تاريخ التسجيل\n";
+            
+            filteredRequests.forEach(request => {
+                let submissionDate = 'غير محدد';
+                if (request.submissionDate && request.submissionDate.toDate) {
+                    submissionDate = request.submissionDate.toDate().toLocaleDateString('ar-SA');
+                }
+                
+                csvContent += `"${request.requestNumber}","${request.fullName}","${request.motherName}","${request.gender}","${request.birthDate}","${request.governorate}","${request.district}","${request.phone1}","${request.landmark}","${request.disabilityType}","${request.disabilityLevel}","${request.disabilityAcquired}","${request.hasWelfareSalary}","${request.welfareSalaryReason || ''}","${request.hasSpecificSalary}","${request.specificSalaryReason || ''}","${request.relationshipDegree}","${request.appointedName}","${request.isEmployee}","${request.isRetired}","${request.maritalStatus}","${request.educationLevel}","${request.supportType}","${request.additionalNotes || ''}","${request.status}","${request.rejectReason || ''}","${submissionDate}"\n`;
+            });
+            
+            // إنشاء ملف وتنزيله
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `طلبات_ذوي_الإعاقة_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // إغلاق النوافذ المنبثقة
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // تهيئة الصفحة عند التحميل
+        document.addEventListener('DOMContentLoaded', async function() {
+            // تسجيل الدخول كضيف
+            try {
+                await auth.signInAnonymously();
+                
+                // إعداد الاستماع للتحديثات الفورية
+                setupRealtimeListener();
+                
+                // جلب البيانات للمرة الأولى
+                await fetchRequests();
+            } catch (error) {
+                console.error("خطأ في المصادقة:", error);
+                showError("حدث خطأ في الاتصال بقاعدة البيانات");
+            }
+            
+            // أحداث البحث السريع
+            document.getElementById('quickSearchBtn').addEventListener('click', quickSearch);
+            document.getElementById('clearSearchBtn').addEventListener('click', resetFilters);
+            document.getElementById('refreshBtn').addEventListener('click', fetchRequests);
+            
+            // البحث عند الضغط على Enter
+            document.getElementById('quickSearch').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    quickSearch();
+                }
+            });
+            
+            // أحداث أزرار الفلترة
+            document.getElementById('applyFilter').addEventListener('click', filterRequests);
+            document.getElementById('resetFilter').addEventListener('click', resetFilters);
+            
+            // زر العودة لنموذج الإدخال
+            document.getElementById('backToForm').addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+            
+            // زر تصدير البيانات
+            document.getElementById('downloadData').addEventListener('click', downloadData);
+            
+            // أحداث إغلاق النوافذ المنبثقة
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    modal.style.display = 'none';
+                });
+            });
+            
+            // إغلاق النوافذ المنبثقة عند النقر خارجها
+            window.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal')) {
+                    e.target.style.display = 'none';
+                }
+            });
+            
+            // تأكيد رفض الطلب
+            document.getElementById('confirmReject').addEventListener('click', rejectRequest);
+            
+            // تعيين تاريخ اليوم كتاريخ نهائي افتراضي
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filterDateTo').value = today;
+            
+            // تعيين تاريخ قبل شهر كتاريخ بداية افتراضي
+            const monthAgo = new Date();
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            document.getElementById('filterDateFrom').value = monthAgo.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>
