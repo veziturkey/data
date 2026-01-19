@@ -12,6 +12,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- SheetJS للتصدير إلى Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
     <style>
         /* تنسيقات عامة */
         * {
@@ -224,6 +226,15 @@
             background-color: #2980b9;
         }
         
+        .btn-excel {
+            background-color: #217346;
+            color: white;
+        }
+        
+        .btn-excel:hover {
+            background-color: #1a5c38;
+        }
+        
         /* جدول الطلبات */
         .requests-section {
             margin-top: 30px;
@@ -263,6 +274,7 @@
             padding: 15px;
             text-align: right;
             font-weight: 600;
+            white-space: nowrap;
         }
         
         tbody tr {
@@ -647,6 +659,35 @@
             border-radius: 8px;
             font-size: 0.9rem;
         }
+        
+        /* زر تصدير Excel */
+        .export-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f7ff;
+            border-radius: 10px;
+            border-right: 5px solid #217346;
+        }
+        
+        .export-section h3 {
+            color: #217346;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .export-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .export-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -771,8 +812,8 @@
                         <i class="fas fa-arrow-right"></i> العودة لنموذج الإدخال
                     </button>
                     
-                    <button id="downloadData" class="btn btn-download">
-                        <i class="fas fa-download"></i> تصدير البيانات
+                    <button id="downloadExcel" class="btn btn-excel">
+                        <i class="fas fa-file-excel"></i> تصدير إلى Excel
                     </button>
                 </div>
             </div>
@@ -1373,35 +1414,163 @@
             displayRequests();
         }
         
-        // تصدير البيانات
-        function downloadData() {
+        // تصدير البيانات إلى Excel
+        function exportToExcel() {
             if (filteredRequests.length === 0) {
                 alert('لا توجد بيانات للتصدير');
                 return;
             }
             
-            // تحويل البيانات إلى تنسيق CSV
-            let csvContent = "رقم الطلب,الاسم الرباعي,اسم الأم الثلاثي,نوع الجنس,تاريخ الميلاد,المحافظة,القضاء,رقم الهاتف,أقرب نقطة دالة,نوع العوق,درجة العوق,هل العوق,راتب الرعاية,سبب عدم راتب الرعاية,راتب معين,سبب عدم راتب معين,درجة القرابة,اسم المعين,هل موظف,هل متقاعد,الحالة الاجتماعية,المستوى التعليمي,نوع الدعم المطلوب,ملاحظات,حالة الطلب,سبب الرفض,تاريخ التسجيل\n";
+            showLoading();
             
-            filteredRequests.forEach(request => {
-                let submissionDate = 'غير محدد';
-                if (request.submissionDate && request.submissionDate.toDate) {
-                    submissionDate = request.submissionDate.toDate().toLocaleDateString('ar-SA');
+            try {
+                // تحويل البيانات إلى مصفوفة للتصدير
+                const excelData = filteredRequests.map(request => {
+                    // تنسيق التاريخ
+                    let formattedDate = 'غير محدد';
+                    if (request.submissionDate && request.submissionDate.toDate) {
+                        const submissionDate = request.submissionDate.toDate();
+                        formattedDate = submissionDate.toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                    
+                    return {
+                        'رقم الطلب': request.requestNumber,
+                        'الاسم الرباعي': request.fullName,
+                        'اسم الأم الثلاثي': request.motherName,
+                        'نوع الجنس': request.gender,
+                        'تاريخ الميلاد': request.birthDate || 'غير محدد',
+                        'رقم الهاتف الأول': request.phone1,
+                        'رقم الهاتف الثاني': request.phone2 || '',
+                        'المحافظة': request.governorate,
+                        'القضاء / الناحية': request.district,
+                        'أقرب نقطة دالة': request.landmark,
+                        'نوع العوق': request.disabilityType,
+                        'درجة العوق': request.disabilityLevel,
+                        'هل العوق': request.disabilityAcquired,
+                        'راتب الرعاية': request.hasWelfareSalary,
+                        'سبب عدم راتب الرعاية': request.welfareSalaryReason || '',
+                        'راتب معين': request.hasSpecificSalary,
+                        'سبب عدم راتب معين': request.specificSalaryReason || '',
+                        'درجة القرابة': request.relationshipDegree,
+                        'اسم المعين': request.appointedName,
+                        'هل موظف': request.isEmployee,
+                        'هل متقاعد': request.isRetired,
+                        'الحالة الاجتماعية': request.maritalStatus,
+                        'المستوى التعليمي': request.educationLevel,
+                        'نوع الدعم المطلوب': request.supportType,
+                        'ملاحظات إضافية': request.additionalNotes || '',
+                        'حالة الطلب': request.status,
+                        'سبب الرفض': request.rejectReason || '',
+                        'تاريخ التسجيل': formattedDate
+                    };
+                });
+                
+                // إنشاء ورقة عمل Excel
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                
+                // إنشاء مصنف Excel
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "طلبات ذوي الإعاقة");
+                
+                // تنسيق الأعمدة العربية
+                const wscols = [
+                    {wch: 15}, // رقم الطلب
+                    {wch: 25}, // الاسم الرباعي
+                    {wch: 25}, // اسم الأم الثلاثي
+                    {wch: 10}, // نوع الجنس
+                    {wch: 15}, // تاريخ الميلاد
+                    {wch: 15}, // رقم الهاتف الأول
+                    {wch: 15}, // رقم الهاتف الثاني
+                    {wch: 15}, // المحافظة
+                    {wch: 20}, // القضاء / الناحية
+                    {wch: 25}, // أقرب نقطة دالة
+                    {wch: 20}, // نوع العوق
+                    {wch: 15}, // درجة العوق
+                    {wch: 15}, // هل العوق
+                    {wch: 15}, // راتب الرعاية
+                    {wch: 25}, // سبب عدم راتب الرعاية
+                    {wch: 15}, // راتب معين
+                    {wch: 25}, // سبب عدم راتب معين
+                    {wch: 15}, // درجة القرابة
+                    {wch: 25}, // اسم المعين
+                    {wch: 10}, // هل موظف
+                    {wch: 10}, // هل متقاعد
+                    {wch: 15}, // الحالة الاجتماعية
+                    {wch: 15}, // المستوى التعليمي
+                    {wch: 20}, // نوع الدعم المطلوب
+                    {wch: 30}, // ملاحظات إضافية
+                    {wch: 15}, // حالة الطلب
+                    {wch: 30}, // سبب الرفض
+                    {wch: 20}  // تاريخ التسجيل
+                ];
+                worksheet['!cols'] = wscols;
+                
+                // إعدادات التنسيق للغة العربية
+                const range = XLSX.utils.decode_range(worksheet['!ref']);
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({c: C, r: 0});
+                    if (worksheet[cellAddress]) {
+                        worksheet[cellAddress].s = {
+                            font: {
+                                name: 'Arial',
+                                sz: 12,
+                                bold: true
+                            },
+                            alignment: {
+                                horizontal: 'center',
+                                vertical: 'center'
+                            },
+                            fill: {
+                                fgColor: {rgb: "0d47a1"}
+                            },
+                            color: {rgb: "FFFFFF"}
+                        };
+                    }
                 }
                 
-                csvContent += `"${request.requestNumber}","${request.fullName}","${request.motherName}","${request.gender}","${request.birthDate}","${request.governorate}","${request.district}","${request.phone1}","${request.landmark}","${request.disabilityType}","${request.disabilityLevel}","${request.disabilityAcquired}","${request.hasWelfareSalary}","${request.welfareSalaryReason || ''}","${request.hasSpecificSalary}","${request.specificSalaryReason || ''}","${request.relationshipDegree}","${request.appointedName}","${request.isEmployee}","${request.isRetired}","${request.maritalStatus}","${request.educationLevel}","${request.supportType}","${request.additionalNotes || ''}","${request.status}","${request.rejectReason || ''}","${submissionDate}"\n`;
-            });
-            
-            // إنشاء ملف وتنزيله
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `طلبات_ذوي_الإعاقة_${new Date().toISOString().slice(0,10)}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+                // تنسيق الخلايا
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
+                        if (worksheet[cellAddress]) {
+                            worksheet[cellAddress].s = {
+                                font: {
+                                    name: 'Arial',
+                                    sz: 11
+                                },
+                                alignment: {
+                                    horizontal: 'right',
+                                    vertical: 'center'
+                                },
+                                border: {
+                                    top: {style: 'thin', color: {rgb: "000000"}},
+                                    bottom: {style: 'thin', color: {rgb: "000000"}},
+                                    left: {style: 'thin', color: {rgb: "000000"}},
+                                    right: {style: 'thin', color: {rgb: "000000"}}
+                                }
+                            };
+                        }
+                    }
+                }
+                
+                // إضافة عنوان للملف
+                const today = new Date();
+                const fileName = `طلبات_ذوي_الإعاقة_${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}.xlsx`;
+                
+                // تحميل الملف
+                XLSX.writeFile(workbook, fileName);
+                
+                showSuccess('تم تصدير البيانات إلى Excel بنجاح');
+            } catch (error) {
+                console.error("خطأ في تصدير البيانات:", error);
+                showError('حدث خطأ أثناء تصدير البيانات');
+            } finally {
+                hideLoading();
+            }
         }
         
         // إغلاق النوافذ المنبثقة
@@ -1446,8 +1615,8 @@
                 window.location.href = 'index.html';
             });
             
-            // زر تصدير البيانات
-            document.getElementById('downloadData').addEventListener('click', downloadData);
+            // زر تصدير البيانات إلى Excel
+            document.getElementById('downloadExcel').addEventListener('click', exportToExcel);
             
             // أحداث إغلاق النوافذ المنبثقة
             document.querySelectorAll('.close-modal').forEach(btn => {
